@@ -65,16 +65,3 @@ st.divider()
 if st.button("🔄 Liste aktualisieren"):
     st.cache_data.clear()
     st.rerun()
-Was ist jetzt anders?
-Kein "Foto-Knopf" mehr: Sobald du den Tab öffnest, startet die Kamera. Sie scannt "live". Sobald ein QR-Code im Bild erscheint, reagiert die App sofort.
-
-Browser-Leistung: Die Erkennung findet auf deinem Handy statt, was viel schneller ist als das Hochladen von Fotos.
-
-YouTube Premium Ready: Der Button führt dich direkt zur Suche, und dank deines Abos startet die Musik ohne Werbung.
-
-Wichtige Hinweise für den ersten Start:
-Kamera-Berechtigung: Dein Browser wird dich fragen, ob die Webseite auf die Kamera zugreifen darf. Klicke auf "Erlauben".
-
-HTTPS: Der Live-Scanner funktioniert aus Sicherheitsgründen nur über eine verschlüsselte Verbindung (https://...). Deine Streamlit-Cloud-URL ist bereits verschlüsselt, also sollte es sofort klappen.
-
-Sobald du die requirements.txt und app.py aktualisiert hast, sollte die App neu starten. Soll ich dir zeigen, wie du die Kamera-Vorschau noch etwas größer machst, falls sie auf deinem Handy zu klein erscheint?
