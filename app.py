@@ -3,73 +3,50 @@ import pandas as pd
 import urllib.parse
 import cv2
 import numpy as np
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 from pyzbar.pyzbar import decode
 
-# 1. DEIN LINK ZU GOOGLE SHEETS
-SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRc6H9CTr8f_H1LxYyh073DgcjjlwZzHxtcY1aTjS7YSErz0sGzni6PYKbk9lJhN66hUdplPKn1f1a-/pub?output=csv"
+# URL deines veröffentlichten Google Sheets (CSV-Link)
+SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/DEINE_ID/pub?output=csv"
 
-st.set_page_config(page_title="Hitster Live Pro", page_icon="🎧", layout="centered")
+st.set_page_config(page_title="Hitster Scan Fix", layout="centered")
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=60)
 def load_data():
-    try:
-        return pd.read_csv(SHEET_CSV_URL, dtype={'qr_id': str})
-    except:
-        return pd.DataFrame(columns=['qr_id', 'artist', 'title'])
+    return pd.read_csv(SHEET_CSV_URL, dtype={'qr_id': str})
 
-class QRScanner(VideoTransformerBase):
-    def __init__(self):
-        self.result = None
-
-    def transform(self, frame):
-        img = frame.to_ndarray(format="bgr24")
-        # QR-Code Scan
-        codes = decode(img)
-        if codes:
-            # Extrahiert die ID (z.B. DE01143)
-            self.result = codes[0].data.decode("utf-8").split('/')[-1]
-            # Visuelles Feedback: Grüner Rahmen
-            for code in codes:
-                pts = np.array([code.polygon], np.int32)
-                cv2.polylines(img, [pts], True, (0, 255, 0), 5)
-        return img
-
-st.title("🎧 Hitster Live-Scanner")
+st.title("🎧 Hitster Scanner Fix")
 df = load_data()
 
-# Live-Video Stream
-ctx = webrtc_streamer(
-    key="scanner", 
-    video_transformer_factory=QRScanner,
-    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-    media_stream_constraints={"video": True, "audio": False}
-)
+# Einfaches Kamera-Eingabefeld
+img_file = st.camera_input("Karte scannen")
 
-# Ergebnis-Logik
-if ctx.video_transformer and ctx.video_transformer.result:
-    card_id = ctx.video_transformer.result
-    song_info = df[df['qr_id'] == str(card_id)]
+if img_file:
+    # Bild verarbeiten
+    bytes_data = img_file.getvalue()
+    cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
     
-    if not song_info.empty:
-        artist = song_info.iloc[0]['artist']
-        title = song_info.iloc[0]['title']
-        st.success("🎯 Karte erkannt!")
+    # QR-Code suchen
+    detected_codes = decode(cv2_img)
+    
+    if detected_codes:
+        raw_content = detected_codes[0].data.decode("utf-8")
+        # ID extrahieren (nimmt das Ende des Links)
+        card_id = raw_content.split('/')[-1].strip()
         
-        search_term = f"{artist} {title}"
-        # Da du Premium hast: Der Link führt zur Suche, YouTube Music spielt das Top-Ergebnis
-        ytm_url = f"https://music.youtube.com/search?q={urllib.parse.quote(search_term)}"
+        st.write(f"Gefundene ID: **{card_id}**") # Zur Kontrolle anzeigen
         
-        st.link_button("▶️ JETZT ABSPIELEN", ytm_url, type="primary", use_container_width=True)
+        # Abgleich mit Tabelle
+        song = df[df['qr_id'] == card_id]
         
-        with st.expander("🔎 Lösung anzeigen"):
-            st.write(f"**{artist}** — {title}")
+        if not song.empty:
+            artist = song.iloc[0]['artist']
+            title = song.iloc[0]['title']
+            search = urllib.parse.quote(f"{artist} {title}")
+            yt_link = f"https://music.youtube.com/search?q={search}"
+            
+            st.success(f"🎯 Treffer!")
+            st.link_button("▶️ SONG ABSPIELEN", yt_link, type="primary", use_container_width=True)
+        else:
+            st.warning(f"ID {card_id} nicht in der Liste gefunden.")
     else:
-        st.warning(f"ID {card_id} ist noch nicht in deiner Liste verknüpft.")
-
-st.divider()
-with st.expander("⌨️ Manuelle Eingabe / Hilfe"):
-    m_id = st.text_input("ID eingeben (z.B. DE01143):")
-    if m_id:
-        st.info(f"Suche nach {m_id}...")
-        # (Logik für manuelle ID analog zu oben)
+        st.error("Kein QR-Code erkannt. Bitte näher ran oder Licht verbessern.")
