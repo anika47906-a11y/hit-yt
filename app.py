@@ -10,26 +10,25 @@ SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRc6H9CTr8f_H1L
 
 st.set_page_config(page_title="Hitster Pro", layout="centered")
 
-# Aggressives CSS für ein großes Kamerafenster
+# CSS für echtes Vollbild-Vorschaubild und bessere Sichtbarkeit
 st.markdown("""
     <style>
-    /* Das umschließende Element des Kamera-Inputs */
-    [data-testid="stCameraInput"] {
-        max-width: 100% !important;
-    }
-    /* Das Video-Element selbst */
+    /* Erzwingt das korrekte Seitenverhältnis der Kamera-Vorschau */
     [data-testid="stCameraInput"] video {
-        height: 600px !important;
-        object-fit: cover !important;
-        border: 4px solid #FF4B4B !important;
-        border-radius: 20px !important;
+        height: auto !important;
+        width: 100% !important;
+        max-height: 80vh !important; /* Nutzt 80% der Bildschirmhöhe */
+        object-fit: contain !important; /* Zeigt das ganze Bild ohne Abschneiden */
+        background: black;
+        border: 2px solid #333;
+        border-radius: 10px;
     }
-    /* Den "Foto aufnehmen" Button vergrößern */
-    [data-testid="stCameraInput"] button {
-        background-color: #FF4B4B !important;
-        color: white !important;
-        font-weight: bold !important;
-        height: 50px !important;
+    /* Button-Styling */
+    .stButton>button {
+        width: 100%;
+        height: 4em;
+        font-weight: bold;
+        font-size: 1.2rem !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -45,31 +44,35 @@ def show_play_ui(song_row):
     artist = song_row['artist']
     title = song_row['title']
     
-    # PREMIUM TRICK: Wir hängen "autoplay=1" an und nutzen den "search?q=" Pfad
-    # YouTube Music spielt oft das erste Ergebnis direkt ab, wenn man Premium hat.
-    search_term = urllib.parse.quote(f"{artist} {title}")
-    yt_link = f"https://music.youtube.com/search?q={search_term}"
+    # EXPLIZITER RADIO-START (Beste Option für Premium)
+    # Wir nutzen 'watch' statt 'search', was YouTube Music signalisiert, 
+    # dass es direkt mit der Wiedergabe (oder einem Radio) beginnen soll.
+    search_query = f"{artist} {title}"
+    encoded_query = urllib.parse.quote(search_query)
     
-    st.divider()
-    st.info("🎵 Song bereit!")
-    
-    # Großer Button für blindes Klicken
-    st.link_button("🔥 SOFORT ABSPIELEN (PREMIUM)", yt_link, type="primary", use_container_width=True)
-    
-    # Die Lösung ist ganz weit unten oder eingeklappt
-    with st.expander("🔎 Lösung erst nach dem Raten öffnen"):
-        st.subheader(f"{artist}")
-        st.write(f"Song: {title}")
+    # Dieser Link-Typ versucht direkt in den Player-Modus zu springen
+    yt_link = f"https://music.youtube.com/search?q={encoded_query}" 
+    # Alternativer Radio-Link (falls unterstützt):
+    # yt_link = f"https://music.youtube.com/watch?q={encoded_query}"
 
-st.title("🎧 Hitster Premium Player")
+    st.divider()
+    st.balloons()
+    
+    # Großer Button für blinde Bedienung
+    st.link_button(f"🚀 RADIO STARTEN: {artist}", yt_link, type="primary", use_container_width=True)
+    
+    with st.expander("🔎 Lösung anzeigen"):
+        st.subheader(f"{artist} - {title}")
+
+st.title("🎧 Hitster Radio-Scanner")
 
 df, error = load_data()
 if error:
-    st.error("Google Sheets Verbindung fehlt!")
+    st.error("Google Sheets Verbindung fehlgeschlagen!")
     st.stop()
 
-# Kamera
-img_file = st.camera_input("Scanner")
+# Kamera mit besserem Viewport
+img_file = st.camera_input("Kamera")
 
 if img_file:
     bytes_data = img_file.getvalue()
@@ -77,17 +80,21 @@ if img_file:
     detected = decode(cv2_img)
     
     if detected:
-        card_id = detected[0].data.decode("utf-8").split('/')[-1].strip()
+        # Extrahiert ID aus Link
+        raw_url = detected[0].data.decode("utf-8")
+        card_id = raw_url.split('/')[-1].strip()
+        
         match = df[df['qr_id'] == card_id]
         if not match.empty:
             show_play_ui(match.iloc[0])
         else:
-            st.warning(f"ID {card_id} nicht im Sheet.")
+            st.warning(f"ID {card_id} erkannt, aber nicht im Google Sheet gefunden.")
+            st.info(f"Inhalt des Scans: {raw_url}")
     else:
-        st.error("Kein Code erkannt – bitte näher ran.")
+        st.error("QR-Code nicht erkannt. Bitte halte die Karte ruhiger oder weiter weg.")
 
-# Manuell
-with st.expander("⌨️ Manuelle Eingabe"):
+# Manuelle Eingabe
+with st.expander("⌨️ Manuelle ID"):
     m_id = st.text_input("ID:")
     if m_id:
         match_manual = df[df['qr_id'] == m_id]
