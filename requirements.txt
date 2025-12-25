@@ -3,3 +3,4 @@ Pandas
 opencv-python-headless
 
 pyzbar
+streamlit-qr-scanner
