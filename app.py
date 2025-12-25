@@ -23,7 +23,7 @@ st.title("Hitster 2 YouTube Music 🎵")
 
 img_file_buffer = st.camera_input("Scanne deine Hitster-Karte")
 
-if img_file_buffer:
+if img_file_buffer:st.write("Bild erhalten, analysiere...")
     bytes_data = img_file_buffer.getvalue()
     cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
     
@@ -66,6 +66,7 @@ if img_file_buffer:
                 st.link_button("In YouTube Music abspielen", ytm_url)
             else:
                 st.error("Diese Karte ist leider noch nicht in der Datenbank.")
+
 
 
 
