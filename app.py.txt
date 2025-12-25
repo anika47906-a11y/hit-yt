@@ -7,7 +7,7 @@ import urllib.parse
 
 # 1. CSV Laden
 @st.cache_data # Sorgt dafür, dass die Datei nicht bei jedem Scan neu geladen wird
-def load_data():
+def load_data(https://docs.google.com/spreadsheets/d/e/2PACX-1vRc6H9CTr8f_H1LxYyh073DgcjjlwZzHxtcY1aTjS7YSErz0sGzni6PYKbk9lJhN66hUdplPKn1f1a-/pub?output=csv):
     return pd.read_csv('songs.csv', dtype={'qr_id': str})
 
 df = load_data()
@@ -50,3 +50,4 @@ if img_file_buffer:
                 st.link_button("In YouTube Music abspielen", ytm_url)
             else:
                 st.error("Diese Karte ist leider noch nicht in der Datenbank.")
+
