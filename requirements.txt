@@ -1,4 +1,5 @@
 streamlit
 Pandas
-opencv-phyton-headless
+opencv-python-headless
+
 pyzbar
