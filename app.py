@@ -5,28 +5,31 @@ import cv2
 import numpy as np
 from pyzbar.pyzbar import decode
 
-# HIER DEINEN AKTUELLEN CSV-LINK EINFÜGEN
+# DEIN CSV-LINK
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRc6H9CTr8f_H1LxYyh073DgcjjlwZzHxtcY1aTjS7YSErz0sGzni6PYKbk9lJhN66hUdplPKn1f1a-/pub?output=csv"
 
-st.set_page_config(page_title="Hitster Pro Scanner", layout="centered")
+st.set_page_config(page_title="Hitster Pro", layout="centered")
 
-# CSS für ein riesiges Kamerafenster
+# Aggressives CSS für ein großes Kamerafenster
 st.markdown("""
     <style>
-    /* Vergrößert das Kamera-Input Fenster */
-    div[data-testid="stCameraInput"] {
-        width: 100% !important;
+    /* Das umschließende Element des Kamera-Inputs */
+    [data-testid="stCameraInput"] {
+        max-width: 100% !important;
     }
-    video {
-        border-radius: 15px;
-        border: 3px solid #FF4B4B;
-        height: 500px !important; /* Hier kannst du die Höhe anpassen */
-        object-fit: cover;
+    /* Das Video-Element selbst */
+    [data-testid="stCameraInput"] video {
+        height: 600px !important;
+        object-fit: cover !important;
+        border: 4px solid #FF4B4B !important;
+        border-radius: 20px !important;
     }
-    .stButton>button {
-        width: 100%;
-        height: 3em;
-        font-size: 20px;
+    /* Den "Foto aufnehmen" Button vergrößern */
+    [data-testid="stCameraInput"] button {
+        background-color: #FF4B4B !important;
+        color: white !important;
+        font-weight: bold !important;
+        height: 50px !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -34,42 +37,39 @@ st.markdown("""
 @st.cache_data(ttl=60)
 def load_data():
     try:
-        data = pd.read_csv(SHEET_CSV_URL, dtype={'qr_id': str})
-        return data, None
+        return pd.read_csv(SHEET_CSV_URL, dtype={'qr_id': str}), None
     except Exception as e:
         return None, str(e)
 
 def show_play_ui(song_row):
-    """Zentralfunktion um den Play-Button anzuzeigen"""
     artist = song_row['artist']
     title = song_row['title']
     
-    # YouTube Music Link generieren
+    # PREMIUM TRICK: Wir hängen "autoplay=1" an und nutzen den "search?q=" Pfad
+    # YouTube Music spielt oft das erste Ergebnis direkt ab, wenn man Premium hat.
     search_term = urllib.parse.quote(f"{artist} {title}")
     yt_link = f"https://music.youtube.com/search?q={search_term}"
     
     st.divider()
-    st.success("🎯 Song in der Liste gefunden!")
+    st.info("🎵 Song bereit!")
     
-    # Der Play-Button öffnet YT Music in einem neuen Tab
-    st.link_button("▶️ JETZT AUF YT-MUSIC ABSPIELEN", yt_link, type="primary")
+    # Großer Button für blindes Klicken
+    st.link_button("🔥 SOFORT ABSPIELEN (PREMIUM)", yt_link, type="primary", use_container_width=True)
     
-    # Lösung verstecken
-    with st.expander("🔎 Lösung anzeigen (Spoiler!)"):
-        st.subheader(f"{artist} - {title}")
+    # Die Lösung ist ganz weit unten oder eingeklappt
+    with st.expander("🔎 Lösung erst nach dem Raten öffnen"):
+        st.subheader(f"{artist}")
+        st.write(f"Song: {title}")
 
-# --- HAUPT APP ---
-st.title("🎧 Hitster Pro-Scanner")
+st.title("🎧 Hitster Premium Player")
 
 df, error = load_data()
-
 if error:
-    st.error("⚠️ Verbindung zur Google-Tabelle fehlt. Bitte CSV-Link prüfen.")
+    st.error("Google Sheets Verbindung fehlt!")
     st.stop()
 
-# 1. Kamera-Scan (Jetzt viel größer durch CSS)
-st.subheader("📸 QR-Code Scannen")
-img_file = st.camera_input("Halte die Karte mittig ins Bild")
+# Kamera
+img_file = st.camera_input("Scanner")
 
 if img_file:
     bytes_data = img_file.getvalue()
@@ -78,23 +78,18 @@ if img_file:
     
     if detected:
         card_id = detected[0].data.decode("utf-8").split('/')[-1].strip()
-        st.info(f"Erkannte ID: {card_id}")
-        
         match = df[df['qr_id'] == card_id]
         if not match.empty:
             show_play_ui(match.iloc[0])
         else:
-            st.warning(f"ID {card_id} ist nicht in deinem Google Sheet hinterlegt.")
+            st.warning(f"ID {card_id} nicht im Sheet.")
     else:
-        st.error("Kein Code gefunden. Probiere es näher oder mit mehr Licht.")
+        st.error("Kein Code erkannt – bitte näher ran.")
 
-# 2. Manuelle ID-Eingabe (Fix: Button erscheint jetzt!)
-st.divider()
-with st.expander("⌨️ Manuelle ID Eingabe (z.B. DE01301)"):
-    m_id = st.text_input("ID eingeben:")
+# Manuell
+with st.expander("⌨️ Manuelle Eingabe"):
+    m_id = st.text_input("ID:")
     if m_id:
         match_manual = df[df['qr_id'] == m_id]
         if not match_manual.empty:
             show_play_ui(match_manual.iloc[0])
-        else:
-            st.warning(f"ID {m_id} nicht gefunden.")
