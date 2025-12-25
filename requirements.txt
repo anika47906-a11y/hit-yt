@@ -1,6 +1,6 @@
 streamlit
 pandas
-streamlit-webrtc
 av
 opencv-python-headless
 pyzbar
+
