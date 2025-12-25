@@ -1,0 +1,52 @@
+import streamlit as st
+import cv2
+from pyzbar.pyzbar import decode
+import numpy as np
+import pandas as pd
+import urllib.parse
+
+# 1. CSV Laden
+@st.cache_data # Sorgt dafür, dass die Datei nicht bei jedem Scan neu geladen wird
+def load_data():
+    return pd.read_csv('songs.csv', dtype={'qr_id': str})
+
+df = load_data()
+
+st.title("Hitster 2 YouTube Music 🎵")
+
+img_file_buffer = st.camera_input("Scanne deine Hitster-Karte")
+
+if img_file_buffer:
+    # Bild verarbeiten
+    bytes_data = img_file_buffer.getvalue()
+    cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
+    detected_codes = decode(cv2_img)
+
+    if detected_codes:
+        for code in detected_codes:
+            # Die ID aus der URL extrahieren (z.B. von "hitstergame.com/play/1001")
+            raw_url = code.data.decode("utf-8")
+            # Wir nehmen nur den letzten Teil der URL als ID
+            card_id = raw_url.split('/')[-1] 
+            
+            st.info(f"ID erkannt: {card_id}")
+
+            # 2. In der CSV nach der ID suchen
+            song_info = df[df['qr_id'] == card_id]
+
+            if not song_info.empty:
+                artist = song_info.iloc[0]['artist']
+                title = song_info.iloc[0]['title']
+
+                search_term = f"{artist} {title}"
+                
+                st.success(f"Gefunden: {artist} - {title}")
+                
+                # YouTube Music Link generieren
+                encoded_search = urllib.parse.quote(search_term)
+                ytm_url = f"https://music.youtube.com/search?q={encoded_search}"
+                
+                # Button zur Weiterleitung
+                st.link_button("In YouTube Music abspielen", ytm_url)
+            else:
+                st.error("Diese Karte ist leider noch nicht in der Datenbank.")
