@@ -5,10 +5,17 @@ import numpy as np
 import pandas as pd
 import urllib.parse
 
-# 1. CSV Laden
-@st.cache_data # Sorgt dafür, dass die Datei nicht bei jedem Scan neu geladen wird
-def load_data(https://docs.google.com/spreadsheets/d/e/2PACX-1vRc6H9CTr8f_H1LxYyh073DgcjjlwZzHxtcY1aTjS7YSErz0sGzni6PYKbk9lJhN66hUdplPKn1f1a-/pub?output=csv):
-    return pd.read_csv('songs.csv', dtype={'qr_id': str})
+# 1. HIER den Link als Variable definieren (in Anführungszeichen!)
+SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRc6H9CTr8f_H1LxYyh073DgcjjlwZzHxtcY1aTjS7YSErz0sGzni6PYKbk9lJhN66hUdplPKn1f1a-/pub?output=csv"
+
+# 2. Die Funktion nutzt dann diese Variable
+@st.cache_data(ttl=600)
+def load_data():
+    try:
+        return pd.read_csv(SHEET_CSV_URL, dtype={'qr_id': str})
+    except Exception as e:
+        st.error(f"Fehler beim Laden der Tabelle: {e}")
+        return pd.DataFrame(columns=['qr_id', 'artist', 'title'])
 
 df = load_data()
 
@@ -50,4 +57,5 @@ if img_file_buffer:
                 st.link_button("In YouTube Music abspielen", ytm_url)
             else:
                 st.error("Diese Karte ist leider noch nicht in der Datenbank.")
+
 
