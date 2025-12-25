@@ -24,10 +24,19 @@ st.title("Hitster 2 YouTube Music 🎵")
 img_file_buffer = st.camera_input("Scanne deine Hitster-Karte")
 
 if img_file_buffer:
-    # Bild verarbeiten
     bytes_data = img_file_buffer.getvalue()
     cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
-    detected_codes = decode(cv2_img)
+    
+    # NEU: Bild optimieren für besseres Scannen
+    gray = cv2.cvtColor(cv2_img, cv2.COLOR_BGR2GRAY) # In Graustufen umwandeln
+    # Kontrast leicht erhöhen
+    enhanced = cv2.equalizeHist(gray)
+    
+    detected_codes = decode(enhanced) # Jetzt das optimierte Bild scannen
+
+    if not detected_codes:
+        # Falls es in Grau nicht klappt, versuchen wir es nochmal mit dem Original
+        detected_codes = decode(cv2_img)
 
     if detected_codes:
         for code in detected_codes:
@@ -57,5 +66,6 @@ if img_file_buffer:
                 st.link_button("In YouTube Music abspielen", ytm_url)
             else:
                 st.error("Diese Karte ist leider noch nicht in der Datenbank.")
+
 
 
