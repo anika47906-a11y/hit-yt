@@ -1,6 +1,5 @@
 streamlit
-Pandas
+pandas
+streamlit-webrtc
+av
 opencv-python-headless
-
-pyzbar
-streamlit-qr-scanner
